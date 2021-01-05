@@ -109,7 +109,7 @@ void goTo (int posB[2]) {
       int previous_y = round(d.calc_y(next_x - 1));
       int next_y = round(d.calc_y(next_x));
       rotation(moteur_x, delta_x);
-      for (int j = 0; j < next_y - previous_y; j++) {
+      for (int j = 0; j < next_y - previous_y; j++) { 
         rotation(moteur_y, delta_y);
       }
     }
@@ -124,7 +124,7 @@ void goTo (int posB[2]) {
       }
     }
   }
-  posA = posB;
+  posA[2] = posB;
 }
 
 void pos1(Moteur moteur) {
