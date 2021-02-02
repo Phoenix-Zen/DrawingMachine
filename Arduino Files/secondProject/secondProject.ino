@@ -1,5 +1,4 @@
 #include <SD.h>
-
 /*
    https://www.motedis.fr/shop/Dynamic-unites-lineaire/Courroies-dentees-et-roues-a-dents/Type-GT2-6mm/GT2-poulie-20-dents-al%E9sage-635-mm-pour-courroie-6-mm::999994247.html
    https://www.motedis.fr/shop/Dynamic-unites-lineaire/Roue-interm%E9diaire-pour-courroie-6mm-large::999994523.html
@@ -22,6 +21,7 @@ int IN1_Y = 9;
 int IN2_Y = 10;
 int IN3_Y = 12;
 int IN4_Y = 13;
+
 
 class Moteur {
   private:
@@ -112,7 +112,7 @@ class Moteur {
 };
 class Pen {
   private:
-    int X, Y, targetX, targetY;
+    int X, Y, targetX, targetY, actual;
     Moteur moteurX, moteurY;
   public:
     Pen(int X, int Y, Moteur moteurX, Moteur moteurY) {
@@ -164,55 +164,96 @@ class Pen {
     }
     void reach(int x, int y) {
       this->setTarget(int(x * this->moteurX.factRed / 10), int(y * this->moteurY.factRed / 10));
-      int actual = 0;
+      this->actual = 0;
       while (!this->reachedTarget()) {
-        if (actual % moteurX.t == 0)
+        if (this->actual % moteurX.t == 0)
           this->reachTargetX();
-        if (actual % moteurY.t == 0)
+        if (this->actual % moteurY.t == 0)
           this->reachTargetY();
         delay(1);
-        actual += 1;
+        this->actual += 1;
       }
     }
 };
-Moteur moteur_y(IN1_Y, IN2_Y, IN3_Y, IN4_Y, 2, 16);
-Moteur moteur_x(IN1_X, IN2_X, IN3_X, IN4_X, 2, 25);
+Moteur moteur_y(IN1_Y, IN2_Y, IN3_Y, IN4_Y, 3, 16);
+Moteur moteur_x(IN1_X, IN2_X, IN3_X, IN4_X, 3, 25);
 Pen pen = Pen(0, 0, moteur_x, moteur_y);
 
 File myFile;
 
+String split(String s, char ctest){
+  String r = ""; 
+  for(char& c : s){
+    if(c != ctest){
+      r+=c;
+    }else{
+      return r;
+    }
+  }
+}
 void setup() {
   Serial.begin(9600);
+  
   //Xmax = 1300
   //Ymax = 850
-  // pen.reach(0, 0);
-  // pen.reach(0, 850);if (!SD.begin(10)) { //make sure sd card was found
+  //pen.reach(0, 0);
   delay(1000);
-  if(!SD.begin(10)){
+  if (!SD.begin(10)) { //make sure sd card was found
     while(true){
       Serial.println("NO SD DETECTED");
     }
   }
-  myFile = SD.open("points.txt");
-  
-  if(!myFile){
-    while(true){
-      Serial.println("NO SD CARD DETECTED");
-    }
-  }
-  String l[] = {};
-  while(myFile.available()){
-    char c = myFile.read();
-    char* t = "";
-    while(c != 'n'){
-      t+=c;
+  int fileNumber = 0;
+  myFile = SD.open("points"+fileNumber);
+  while(myFile){
+    myFile.close();
+    myFile = SD.open("points"+fileNumber);
+    int i1 = -1;
+    int i2 = -1;
+    int actualNumber = i1;
+    char c;
+    while(myFile.available() > 1){
+      Serial.println(myFile.available());
       c = myFile.read();
+      if(c == ' '){
+        if(i1 != -1){
+          i2 = actualNumber;
+          actualNumber = -1;
+          //pen.reach(i1, i2);
+          /*
+          Serial.print("atteind ");
+          Serial.print(i1);
+          Serial.print(" ");
+          Serial.println(i2);*/
+          pen.reach(i1, i2);
+          i1 = -1;
+          i2 = -1;
+          actualNumber = -1;
+        }
+      }
+      else if(c == 'n'){
+        //soulever le stylo
+        //Serial.println("souleve");
+      }
+      else if(c == ','){
+        i1 = actualNumber;
+        actualNumber = -1;
+      }else{
+        if(actualNumber == -1)
+          actualNumber=0;
+        actualNumber*=10;
+        actualNumber+=c - '0';
+        if(actualNumber < 1300){
+          /*Serial.println(actualNumber);
+          Serial.println(c);*/
+        }else{
+          actualNumber = 0;
+        }
+      }
     }
-    char* ts = strtok (t," ");
-    Serial.println(ts);
-  }
+  }  
+
   Serial.println("END");
-  myFile.close();
 }
 
 void loop() {
